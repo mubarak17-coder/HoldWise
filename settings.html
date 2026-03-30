@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Holdwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0A0F1E;
+      --bg-card: #111827;
+      --bg-sidebar: #0F1F3D;
+      --border: rgba(255,255,255,0.08);
+      --text: #FFFFFF;
+      --text-muted: rgba(255,255,255,0.5);
+      --accent: #1A56DB;
+      --cyan: #00D4FF;
+      --green: #28C840;
+      --red: #FF5555;
+      --yellow: #FFB800;
+      --sidebar-w: 240px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    body.loaded { opacity: 1; }
+    body.fade-out { opacity: 0; transition: opacity 0.25s ease; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 24px 20px 32px;
+      text-decoration: none;
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-logo .logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      border: none; background: none; font-family: inherit;
+      width: 100%; text-align: left;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: #fff; background: var(--accent); }
+    .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; line-height: 1; }
+    .nav-item .nav-label { white-space: nowrap; }
+    .sidebar-bottom { padding: 16px 12px 24px; border-top: 1px solid var(--border); margin-top: auto; }
+    .nav-item.logout { color: var(--red); }
+    .nav-item.logout:hover { background: rgba(255,85,85,0.1); }
+
+    /* ── Content ── */
+    .content {
+      margin-left: var(--sidebar-w);
+      padding: 32px 32px 40px;
+      min-height: 100vh;
+      max-width: calc(720px + var(--sidebar-w));
+    }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 32px; }
+
+    /* ── Section ── */
+    .settings-section { margin-bottom: 32px; }
+    .settings-section-title {
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+    }
+
+    /* ── Profile ── */
+    .profile-row {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+    }
+    .profile-avatar {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      flex-shrink: 0;
+    }
+    .profile-info { flex: 1; }
+    .profile-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+    .profile-email { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%; padding: 10px 14px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff;
+      font-size: 14px; font-weight: 600;
+      padding: 10px 20px; border-radius: 10px;
+      border: none; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-danger {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,85,85,0.15); color: var(--red);
+      font-size: 13px; font-weight: 600;
+      padding: 8px 16px; border-radius: 8px;
+      border: 1px solid rgba(255,85,85,0.3);
+      cursor: pointer; font-family: inherit;
+      transition: background 0.2s;
+    }
+    .btn-danger:hover { background: rgba(255,85,85,0.25); }
+    .btn-ghost {
+      color: var(--text-muted); font-size: 13px; font-weight: 500;
+      padding: 8px 14px; border-radius: 8px;
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; transition: color 0.2s, background 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+    /* ── Bank list ── */
+    .bank-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid var(--border);
+    }
+    .bank-item:last-child { border-bottom: none; }
+    .bank-left { display: flex; align-items: center; gap: 12px; }
+    .bank-icon {
+      width: 40px; height: 40px;
+      background: rgba(26,86,219,0.15); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .bank-name { font-size: 14px; font-weight: 600; }
+    .bank-status { font-size: 12px; color: var(--green); display: flex; align-items: center; gap: 4px; }
+    .bank-status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+
+    /* ── Danger zone ── */
+    .danger-zone {
+      border-color: rgba(255,85,85,0.2);
+    }
+    .danger-title { font-size: 15px; font-weight: 600; color: var(--red); margin-bottom: 8px; }
+    .danger-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* ── Spinner ── */
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ── */
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 14px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; backdrop-filter: blur(12px); animation: toastIn 0.35s ease both; max-width: 360px; }
+    .toast.error { background: rgba(255,85,85,0.15); border: 1px solid rgba(255,85,85,0.3); color: #FF5555; }
+    .toast.success { background: rgba(40,200,64,0.15); border: 1px solid rgba(40,200,64,0.3); color: #28C840; }
+    .toast.info { background: rgba(26,86,219,0.15); border: 1px solid rgba(26,86,219,0.3); color: var(--cyan); }
+    .toast.fade-out { animation: toastOut 0.3s ease both; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(40px); } }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sidebar {
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%; height: 64px;
+        flex-direction: row; align-items: center;
+        border-right: none; border-top: 1px solid var(--border);
+        padding: 0 8px;
+      }
+      .sidebar-logo { display: none; }
+      .sidebar-nav { flex-direction: row; gap: 0; padding: 0; justify-content: space-around; width: 100%; }
+      .nav-item { flex-direction: column; gap: 4px; padding: 8px 6px; border-radius: 8px; font-size: 11px; align-items: center; justify-content: center; }
+      .nav-item .nav-icon { font-size: 20px; }
+      .nav-item .nav-label { font-size: 10px; }
+      .sidebar-bottom { display: none; }
+      .content { margin-left: 0; padding: 24px 16px 88px; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+      <div class="logo-icon">H</div>
+      <span class="logo-text">Holdwise</span>
+    </a>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#127968;</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/transactions.html" class="nav-item">
+        <span class="nav-icon">&#128179;</span>
+        <span class="nav-label">Transactions</span>
+      </a>
+      <a href="/savings.html" class="nav-item">
+        <span class="nav-icon">&#128274;</span>
+        <span class="nav-label">Savings</span>
+      </a>
+      <a href="/settings.html" class="nav-item active">
+        <span class="nav-icon">&#9881;&#65039;</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="nav-item logout" onclick="handleLogout()">
+        <span class="nav-icon">&#128682;</span>
+        <span class="nav-label">Log Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="content">
+    <h1 class="page-title">Settings</h1>
+
+    <!-- Profile Section -->
+    <div class="settings-section">
+      <div class="settings-section-title">Profile</div>
+      <div class="card">
+        <div class="profile-row">
+          <div class="profile-avatar" id="profile-avatar">?</div>
+          <div class="profile-info">
+            <div class="profile-name" id="profile-name">Loading...</div>
+            <div class="profile-email" id="profile-email">Loading...</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="setting-name" placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="setting-email" disabled />
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" onclick="saveProfile()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connected Banks -->
+    <div class="settings-section">
+      <div class="settings-section-title">Connected Banks</div>
+      <div class="card">
+        <div id="banks-list">
+          <div style="text-align:center;padding:16px;color:var(--text-muted);font-size:14px;">
+            <span class="spinner"></span> Checking connections...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="settings-section">
+      <div class="settings-section-title">Danger Zone</div>
+      <div class="card danger-zone">
+        <div class="danger-title">Delete Account</div>
+        <div class="danger-desc">Permanently delete your account and all associated data. This action cannot be undone.</div>
+        <button class="btn-danger" onclick="confirmDeleteAccount()">Delete My Account</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://vsmiguhndgjmygbxhage.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWlndWhuZGdqbXlnYnhoYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTYsImV4cCI6MjA5MDM4MjY1Nn0.xhPxYmIxBdJu856e63WQna_fQTC1FRqILZcuctemIpo';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+
+    (async function() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/login.html'; return; }
+      document.body.classList.add('loaded');
+      currentUser = session.user;
+      loadProfile();
+      loadBanks();
+    })();
+
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 250);
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem('holdwise_lockbox');
+      localStorage.removeItem('holdwise_lockbox_goal');
+      navigateTo('/login.html');
+    }
+
+    async function getAuthHeaders() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) return {};
+      return { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' };
+    }
+    async function authFetch(url, options = {}) {
+      const headers = await getAuthHeaders();
+      const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+      if (res.status === 401) { await supabaseClient.auth.signOut(); window.location.href = '/login.html'; throw new Error('Session expired'); }
+      return res;
+    }
+
+    // ── Profile ──
+    function loadProfile() {
+      if (!currentUser) return;
+      const name = currentUser.user_metadata?.full_name || '';
+      const email = currentUser.email || '';
+      const initial = name ? name.charAt(0).toUpperCase() : email.charAt(0).toUpperCase();
+
+      document.getElementById('profile-avatar').textContent = initial;
+      document.getElementById('profile-name').textContent = name || 'No name set';
+      document.getElementById('profile-email').textContent = email;
+      document.getElementById('setting-name').value = name;
+      document.getElementById('setting-email').value = email;
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('setting-name').value.trim();
+      if (!name) { showToast('Name cannot be empty.', 'error'); return; }
+
+      try {
+        const { error } = await supabaseClient.auth.updateUser({
+          data: { full_name: name }
+        });
+        if (error) throw error;
+        document.getElementById('profile-name').textContent = name;
+        document.getElementById('profile-avatar').textContent = name.charAt(0).toUpperCase();
+        showToast('Profile updated!', 'success');
+      } catch (err) {
+        showToast('Failed to update profile.', 'error');
+      }
+    }
+
+    // ── Banks ──
+    async function loadBanks() {
+      const container = document.getElementById('banks-list');
+      try {
+        const res = await authFetch('/api/balances');
+        const data = await res.json();
+        const accounts = data.accounts || [];
+
+        if (accounts.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">
+              <p style="margin-bottom:12px;">No bank accounts connected.</p>
+              <a href="/dashboard.html" style="color:var(--accent);font-weight:600;text-decoration:none;">Go to Dashboard to connect a bank</a>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = accounts.map(acc => `
+          <div class="bank-item">
+            <div class="bank-left">
+              <div class="bank-icon">&#127974;</div>
+              <div>
+                <div class="bank-name">${acc.name || acc.official_name || 'Bank Account'}</div>
+                <div class="bank-status"><span class="bank-status-dot"></span> Connected</div>
+              </div>
+            </div>
+            <button class="btn-danger" onclick="disconnectBank()">Disconnect</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">
+            No bank accounts connected.
+            <br><a href="/dashboard.html" style="color:var(--accent);font-weight:600;text-decoration:none;">Go to Dashboard to connect</a>
+          </div>`;
+      }
+    }
+
+    async function disconnectBank() {
+      if (!confirm('Are you sure you want to disconnect this bank account? You will need to reconnect it to see your data again.')) return;
+
+      try {
+        // Clear the stored access token from user metadata
+        const { error } = await supabaseClient.auth.updateUser({
+          data: { plaid_access_token: null, plaid_item_id: null }
+        });
+        if (error) throw error;
+        showToast('Bank disconnected successfully.', 'success');
+        loadBanks();
+      } catch (err) {
+        showToast('Failed to disconnect bank.', 'error');
+      }
+    }
+
+    function confirmDeleteAccount() {
+      if (!confirm('This will permanently delete your account and all data. Are you absolutely sure?')) return;
+      if (!confirm('Last chance — this cannot be undone. Type OK in the next prompt to confirm.')) return;
+      const typed = prompt('Type "DELETE" to confirm account deletion:');
+      if (typed !== 'DELETE') {
+        showToast('Account deletion cancelled.', 'info');
+        return;
+      }
+      showToast('Account deletion is not available in this version. Contact support.', 'info');
+    }
+  </script>
+</body>
+</html>

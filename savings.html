@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Savings — Holdwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0A0F1E;
+      --bg-card: #111827;
+      --bg-sidebar: #0F1F3D;
+      --border: rgba(255,255,255,0.08);
+      --text: #FFFFFF;
+      --text-muted: rgba(255,255,255,0.5);
+      --accent: #1A56DB;
+      --cyan: #00D4FF;
+      --green: #28C840;
+      --red: #FF5555;
+      --yellow: #FFB800;
+      --sidebar-w: 240px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    body.loaded { opacity: 1; }
+    body.fade-out { opacity: 0; transition: opacity 0.25s ease; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 24px 20px 32px;
+      text-decoration: none;
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-logo .logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      border: none; background: none; font-family: inherit;
+      width: 100%; text-align: left;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: #fff; background: var(--accent); }
+    .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; line-height: 1; }
+    .nav-item .nav-label { white-space: nowrap; }
+    .sidebar-bottom { padding: 16px 12px 24px; border-top: 1px solid var(--border); margin-top: auto; }
+    .nav-item.logout { color: var(--red); }
+    .nav-item.logout:hover { background: rgba(255,85,85,0.1); }
+
+    /* ── Content ── */
+    .content {
+      margin-left: var(--sidebar-w);
+      padding: 32px 32px 40px;
+      min-height: 100vh;
+    }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .page-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.12); }
+
+    /* ── Lockbox Hero ── */
+    .lockbox-hero {
+      background: linear-gradient(135deg, rgba(26,86,219,0.12), rgba(0,212,255,0.06));
+      border: 1px solid rgba(26,86,219,0.25);
+      border-radius: 16px; padding: 32px;
+      margin-bottom: 24px;
+    }
+    .lockbox-hero-title {
+      font-size: 14px; font-weight: 600; color: var(--cyan);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .lockbox-amounts { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+    .lockbox-current { font-size: 40px; font-weight: 800; color: var(--green); }
+    .lockbox-goal-text { font-size: 16px; color: var(--text-muted); }
+    .progress-track { height: 12px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--cyan)); border-radius: 6px; transition: width 0.5s ease; }
+    .progress-label { font-size: 13px; color: var(--text-muted); text-align: right; margin-bottom: 20px; }
+
+    .lockbox-actions { display: flex; gap: 12px; }
+    .lockbox-input {
+      flex: 1; padding: 12px 16px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 15px; font-family: inherit; outline: none;
+    }
+    .lockbox-input:focus { border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #fff;
+      font-size: 14px; font-weight: 600;
+      padding: 12px 24px; border-radius: 10px;
+      border: none; cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; color: var(--accent);
+      font-size: 13px; font-weight: 600;
+      padding: 10px 18px; border-radius: 10px;
+      border: 1px solid var(--accent);
+      cursor: pointer; font-family: inherit; transition: background 0.2s;
+    }
+    .btn-outline:hover { background: rgba(26,86,219,0.1); }
+    .btn-danger-outline {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; color: var(--red);
+      font-size: 13px; font-weight: 600;
+      padding: 10px 18px; border-radius: 10px;
+      border: 1px solid rgba(255,85,85,0.3);
+      cursor: pointer; font-family: inherit; transition: background 0.2s;
+    }
+    .btn-danger-outline:hover { background: rgba(255,85,85,0.1); }
+
+    /* ── Goals Grid ── */
+    .goals-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .goals-header h2 { font-size: 18px; font-weight: 700; }
+    .goals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .goal-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .goal-card:hover { border-color: rgba(255,255,255,0.12); }
+    .goal-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .goal-card-icon { font-size: 28px; }
+    .goal-card-actions { display: flex; gap: 8px; }
+    .goal-card-actions button {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: 14px; padding: 4px;
+      transition: color 0.2s;
+    }
+    .goal-card-actions button:hover { color: var(--text); }
+    .goal-card-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .goal-card-amount { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .goal-card-amount strong { color: var(--text); font-weight: 600; }
+    .goal-mini-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .goal-mini-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .goal-mini-label { font-size: 11px; color: var(--text-muted); text-align: right; }
+
+    /* ── History ── */
+    .history-section { margin-top: 32px; }
+    .history-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-left { display: flex; flex-direction: column; gap: 2px; }
+    .history-label { font-size: 14px; font-weight: 500; }
+    .history-date { font-size: 12px; color: var(--text-muted); }
+    .history-amount { font-size: 14px; font-weight: 600; color: var(--green); }
+
+    /* ── Toast ── */
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 14px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; backdrop-filter: blur(12px); animation: toastIn 0.35s ease both; max-width: 360px; }
+    .toast.error { background: rgba(255,85,85,0.15); border: 1px solid rgba(255,85,85,0.3); color: #FF5555; }
+    .toast.success { background: rgba(40,200,64,0.15); border: 1px solid rgba(40,200,64,0.3); color: #28C840; }
+    .toast.info { background: rgba(26,86,219,0.15); border: 1px solid rgba(26,86,219,0.3); color: var(--cyan); }
+    .toast.fade-out { animation: toastOut 0.3s ease both; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(40px); } }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sidebar {
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%; height: 64px;
+        flex-direction: row; align-items: center;
+        border-right: none; border-top: 1px solid var(--border);
+        padding: 0 8px;
+      }
+      .sidebar-logo { display: none; }
+      .sidebar-nav { flex-direction: row; gap: 0; padding: 0; justify-content: space-around; width: 100%; }
+      .nav-item { flex-direction: column; gap: 4px; padding: 8px 6px; border-radius: 8px; font-size: 11px; align-items: center; justify-content: center; }
+      .nav-item .nav-icon { font-size: 20px; }
+      .nav-item .nav-label { font-size: 10px; }
+      .sidebar-bottom { display: none; }
+      .content { margin-left: 0; padding: 24px 16px 88px; }
+      .goals-grid { grid-template-columns: 1fr; }
+      .lockbox-current { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+      <div class="logo-icon">H</div>
+      <span class="logo-text">Holdwise</span>
+    </a>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#127968;</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/transactions.html" class="nav-item">
+        <span class="nav-icon">&#128179;</span>
+        <span class="nav-label">Transactions</span>
+      </a>
+      <a href="/savings.html" class="nav-item active">
+        <span class="nav-icon">&#128274;</span>
+        <span class="nav-label">Savings</span>
+      </a>
+      <a href="/settings.html" class="nav-item">
+        <span class="nav-icon">&#9881;&#65039;</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="nav-item logout" onclick="handleLogout()">
+        <span class="nav-icon">&#128682;</span>
+        <span class="nav-label">Log Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="content">
+    <h1 class="page-title">Savings</h1>
+    <p class="page-subtitle">Track your savings goals and grow your lockbox.</p>
+
+    <!-- Main Lockbox -->
+    <div class="lockbox-hero">
+      <div class="lockbox-hero-title">Savings Lockbox</div>
+      <div class="lockbox-amounts">
+        <span class="lockbox-current" id="lockbox-current">$0.00</span>
+        <span class="lockbox-goal-text" id="lockbox-goal">of $5,000.00 goal</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="lockbox-progress" style="width: 0%"></div>
+      </div>
+      <div class="progress-label" id="lockbox-percent">0% reached</div>
+      <div class="lockbox-actions">
+        <input type="number" class="lockbox-input" id="lockbox-amount" placeholder="Amount to save" min="0" step="0.01" />
+        <button class="btn-primary" onclick="addToLockbox()">Add Savings</button>
+        <button class="btn-outline" onclick="editGoal()">Edit Goal</button>
+      </div>
+    </div>
+
+    <!-- Savings Goals -->
+    <div class="goals-header">
+      <h2>Savings Goals</h2>
+      <button class="btn-outline" onclick="addNewGoal()">+ New Goal</button>
+    </div>
+    <div class="goals-grid" id="goals-grid"></div>
+
+    <!-- Savings History -->
+    <div class="history-section">
+      <h2>Recent Activity</h2>
+      <div class="card">
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://vsmiguhndgjmygbxhage.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWlndWhuZGdqbXlnYnhoYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTYsImV4cCI6MjA5MDM4MjY1Nn0.xhPxYmIxBdJu856e63WQna_fQTC1FRqILZcuctemIpo';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    (async function() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/login.html'; return; }
+      document.body.classList.add('loaded');
+    })();
+
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 250);
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem('holdwise_lockbox');
+      localStorage.removeItem('holdwise_lockbox_goal');
+      localStorage.removeItem('holdwise_goals');
+      localStorage.removeItem('holdwise_savings_history');
+      navigateTo('/login.html');
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    }
+
+    // ── Lockbox ──
+    const LOCKBOX_KEY = 'holdwise_lockbox';
+    const LOCKBOX_GOAL_KEY = 'holdwise_lockbox_goal';
+    const GOALS_KEY = 'holdwise_goals';
+    const HISTORY_KEY = 'holdwise_savings_history';
+
+    function getLockbox() { return parseFloat(localStorage.getItem(LOCKBOX_KEY) || '0'); }
+    function getLockboxGoal() { return parseFloat(localStorage.getItem(LOCKBOX_GOAL_KEY) || '5000'); }
+    function saveLockbox(val) { localStorage.setItem(LOCKBOX_KEY, val.toString()); }
+    function saveLockboxGoal(val) { localStorage.setItem(LOCKBOX_GOAL_KEY, val.toString()); }
+
+    function getGoals() {
+      try { return JSON.parse(localStorage.getItem(GOALS_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function saveGoals(goals) { localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
+
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function addHistoryEntry(label, amount) {
+      const history = getHistory();
+      history.unshift({ label, amount, date: new Date().toISOString() });
+      if (history.length > 50) history.length = 50;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function updateLockboxUI() {
+      const current = getLockbox();
+      const goal = getLockboxGoal();
+      const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+      document.getElementById('lockbox-current').textContent = formatCurrency(current);
+      document.getElementById('lockbox-goal').textContent = `of ${formatCurrency(goal)} goal`;
+      document.getElementById('lockbox-progress').style.width = pct.toFixed(1) + '%';
+      document.getElementById('lockbox-percent').textContent = pct.toFixed(1) + '% reached';
+    }
+
+    function addToLockbox() {
+      const input = document.getElementById('lockbox-amount');
+      const amount = parseFloat(input.value);
+      if (!amount || amount <= 0) return;
+      saveLockbox(getLockbox() + amount);
+      addHistoryEntry('Added to Lockbox', amount);
+      input.value = '';
+      updateLockboxUI();
+      renderHistory();
+      showToast(`Added ${formatCurrency(amount)} to lockbox!`, 'success');
+    }
+
+    function editGoal() {
+      const current = getLockboxGoal();
+      const val = prompt('Enter new savings goal:', current);
+      if (val !== null) {
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+          saveLockboxGoal(num);
+          updateLockboxUI();
+          showToast('Goal updated!', 'success');
+        }
+      }
+    }
+
+    // ── Goals ──
+    const goalIcons = ['&#127919;', '&#9992;&#65039;', '&#128187;', '&#127968;', '&#128663;', '&#127891;', '&#128142;', '&#127911;'];
+    const goalColors = ['#1A56DB', '#00D4FF', '#28C840', '#FFB800', '#FF5555', '#A855F7', '#EC4899', '#F97316'];
+
+    function addNewGoal() {
+      const name = prompt('Goal name:');
+      if (!name) return;
+      const target = parseFloat(prompt('Target amount ($):', '1000'));
+      if (isNaN(target) || target <= 0) return;
+
+      const goals = getGoals();
+      goals.push({ id: Date.now(), name, target, saved: 0, icon: goalIcons[goals.length % goalIcons.length] });
+      saveGoals(goals);
+      renderGoals();
+      showToast(`Goal "${name}" created!`, 'success');
+    }
+
+    function addToGoal(id) {
+      const val = prompt('Amount to add:');
+      if (!val) return;
+      const amount = parseFloat(val);
+      if (isNaN(amount) || amount <= 0) return;
+
+      const goals = getGoals();
+      const goal = goals.find(g => g.id === id);
+      if (goal) {
+        goal.saved = Math.min(goal.saved + amount, goal.target);
+        saveGoals(goals);
+        addHistoryEntry(`Added to "${goal.name}"`, amount);
+        renderGoals();
+        renderHistory();
+        showToast(`Added ${formatCurrency(amount)} to "${goal.name}"!`, 'success');
+      }
+    }
+
+    function deleteGoal(id) {
+      if (!confirm('Delete this savings goal?')) return;
+      const goals = getGoals().filter(g => g.id !== id);
+      saveGoals(goals);
+      renderGoals();
+      showToast('Goal deleted.', 'info');
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('goals-grid');
+      const goals = getGoals();
+
+      if (goals.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">
+            <p style="font-size:28px;margin-bottom:8px;">&#127919;</p>
+            <p>No savings goals yet. Create one to start tracking!</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = goals.map((g, i) => {
+        const pct = g.target > 0 ? Math.min((g.saved / g.target) * 100, 100) : 0;
+        const color = goalColors[i % goalColors.length];
+        return `
+          <div class="goal-card">
+            <div class="goal-card-header">
+              <span class="goal-card-icon">${g.icon}</span>
+              <div class="goal-card-actions">
+                <button onclick="addToGoal(${g.id})" title="Add funds">+</button>
+                <button onclick="deleteGoal(${g.id})" title="Delete goal">&times;</button>
+              </div>
+            </div>
+            <div class="goal-card-name">${g.name}</div>
+            <div class="goal-card-amount"><strong>${formatCurrency(g.saved)}</strong> of ${formatCurrency(g.target)}</div>
+            <div class="goal-mini-track">
+              <div class="goal-mini-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>
+            </div>
+            <div class="goal-mini-label">${pct.toFixed(0)}%</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── History ──
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      const history = getHistory();
+
+      if (history.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">No savings activity yet.</div>';
+        return;
+      }
+
+      container.innerHTML = history.slice(0, 15).map(h => {
+        const d = new Date(h.date);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return `
+          <div class="history-item">
+            <div class="history-left">
+              <span class="history-label">${h.label}</span>
+              <span class="history-date">${dateStr}</span>
+            </div>
+            <span class="history-amount">+${formatCurrency(h.amount)}</span>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Init ──
+    document.addEventListener('DOMContentLoaded', () => {
+      updateLockboxUI();
+      renderGoals();
+      renderHistory();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions — Holdwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0A0F1E;
+      --bg-card: #111827;
+      --bg-sidebar: #0F1F3D;
+      --border: rgba(255,255,255,0.08);
+      --text: #FFFFFF;
+      --text-muted: rgba(255,255,255,0.5);
+      --accent: #1A56DB;
+      --cyan: #00D4FF;
+      --green: #28C840;
+      --red: #FF5555;
+      --yellow: #FFB800;
+      --sidebar-w: 240px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    body.loaded { opacity: 1; }
+    body.fade-out { opacity: 0; transition: opacity 0.25s ease; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 24px 20px 32px;
+      text-decoration: none;
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-logo .logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      color: var(--text-muted); font-size: 14px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      border: none; background: none; font-family: inherit;
+      width: 100%; text-align: left;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: #fff; background: var(--accent); }
+    .nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; line-height: 1; }
+    .nav-item .nav-label { white-space: nowrap; }
+    .sidebar-bottom { padding: 16px 12px 24px; border-top: 1px solid var(--border); margin-top: auto; }
+    .nav-item.logout { color: var(--red); }
+    .nav-item.logout:hover { background: rgba(255,85,85,0.1); }
+
+    /* ── Content ── */
+    .content {
+      margin-left: var(--sidebar-w);
+      padding: 32px 32px 40px;
+      min-height: 100vh;
+    }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+
+    /* ── Search & Filter Bar ── */
+    .toolbar {
+      display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px;
+      padding: 10px 14px 10px 38px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-wrapper {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .search-wrapper::before {
+      content: '&#128269;';
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 15px; pointer-events: none;
+    }
+    .filter-select {
+      padding: 10px 14px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px;
+      font-family: inherit; outline: none; cursor: pointer;
+      appearance: none; min-width: 160px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+
+    /* ── Transaction Cards ── */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .tx-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-left { display: flex; flex-direction: column; gap: 2px; }
+    .tx-merchant { font-size: 14px; font-weight: 500; }
+    .tx-meta { font-size: 12px; color: var(--text-muted); }
+    .tx-amount { font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .tx-amount.negative { color: var(--red); }
+    .tx-amount.positive { color: var(--green); }
+    .tx-category-badge {
+      display: inline-block;
+      padding: 3px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(26,86,219,0.15); color: var(--cyan);
+      margin-left: 8px;
+    }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 14px; }
+    .tx-count-label {
+      font-size: 13px; color: var(--text-muted); margin-bottom: 16px;
+    }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-tx { height: 52px; width: 100%; margin-bottom: 12px; border-radius: 8px; }
+
+    /* ── Toast ── */
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 14px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; backdrop-filter: blur(12px); animation: toastIn 0.35s ease both; max-width: 360px; }
+    .toast.error { background: rgba(255,85,85,0.15); border: 1px solid rgba(255,85,85,0.3); color: #FF5555; }
+    .toast.success { background: rgba(40,200,64,0.15); border: 1px solid rgba(40,200,64,0.3); color: #28C840; }
+    .toast.info { background: rgba(26,86,219,0.15); border: 1px solid rgba(26,86,219,0.3); color: var(--cyan); }
+    .toast.fade-out { animation: toastOut 0.3s ease both; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(40px); } }
+
+    /* ── Spinner ── */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sidebar {
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%; height: 64px;
+        flex-direction: row; align-items: center;
+        border-right: none; border-top: 1px solid var(--border);
+        padding: 0 8px;
+      }
+      .sidebar-logo { display: none; }
+      .sidebar-nav { flex-direction: row; gap: 0; padding: 0; justify-content: space-around; width: 100%; }
+      .nav-item { flex-direction: column; gap: 4px; padding: 8px 6px; border-radius: 8px; font-size: 11px; align-items: center; justify-content: center; }
+      .nav-item .nav-icon { font-size: 20px; }
+      .nav-item .nav-label { font-size: 10px; }
+      .sidebar-bottom { display: none; }
+      .content { margin-left: 0; padding: 24px 16px 88px; }
+      .toolbar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+      <div class="logo-icon">H</div>
+      <span class="logo-text">Holdwise</span>
+    </a>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#127968;</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/transactions.html" class="nav-item active">
+        <span class="nav-icon">&#128179;</span>
+        <span class="nav-label">Transactions</span>
+      </a>
+      <a href="/savings.html" class="nav-item">
+        <span class="nav-icon">&#128274;</span>
+        <span class="nav-label">Savings</span>
+      </a>
+      <a href="/settings.html" class="nav-item">
+        <span class="nav-icon">&#9881;&#65039;</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="nav-item logout" onclick="handleLogout()">
+        <span class="nav-icon">&#128682;</span>
+        <span class="nav-label">Log Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="content">
+    <h1 class="page-title">Transactions</h1>
+
+    <!-- Search & Filter -->
+    <div class="toolbar">
+      <div class="search-wrapper">
+        <input type="text" class="search-input" id="tx-search" placeholder="Search transactions..." oninput="filterTransactions()" />
+      </div>
+      <select class="filter-select" id="tx-category-filter" onchange="filterTransactions()">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="card">
+      <div class="tx-count-label" id="tx-count-label">Loading transactions...</div>
+      <div id="tx-list">
+        <div class="skeleton skeleton-tx"></div>
+        <div class="skeleton skeleton-tx"></div>
+        <div class="skeleton skeleton-tx"></div>
+        <div class="skeleton skeleton-tx"></div>
+        <div class="skeleton skeleton-tx"></div>
+        <div class="skeleton skeleton-tx"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://vsmiguhndgjmygbxhage.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWlndWhuZGdqbXlnYnhoYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTYsImV4cCI6MjA5MDM4MjY1Nn0.xhPxYmIxBdJu856e63WQna_fQTC1FRqILZcuctemIpo';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    (async function() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = '/login.html'; return; }
+      document.body.classList.add('loaded');
+    })();
+
+    function navigateTo(url) {
+      document.body.classList.add('fade-out');
+      setTimeout(() => { window.location.href = url; }, 250);
+    }
+
+    // ── Helpers ──
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    }
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    async function getAuthHeaders() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) return {};
+      return { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' };
+    }
+    async function authFetch(url, options = {}) {
+      const headers = await getAuthHeaders();
+      const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+      if (res.status === 401) { await supabaseClient.auth.signOut(); window.location.href = '/login.html'; throw new Error('Session expired'); }
+      return res;
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.classList.add('fade-out'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem('holdwise_lockbox');
+      localStorage.removeItem('holdwise_lockbox_goal');
+      navigateTo('/login.html');
+    }
+
+    // ── Transaction State ──
+    let allTransactions = [];
+    let filteredTransactions = [];
+
+    function getCategories(transactions) {
+      const cats = new Set();
+      transactions.forEach(tx => {
+        const cat = (tx.category && tx.category[0]) || 'Other';
+        cats.add(cat);
+      });
+      return [...cats].sort();
+    }
+
+    function renderTxItem(tx) {
+      const isNeg = tx.amount > 0;
+      const merchant = escapeHtml(tx.merchant_name || tx.name || 'Unknown');
+      const cat = escapeHtml((tx.category && tx.category[0]) || 'Uncategorized');
+      const categories = escapeHtml((tx.category || []).join(', ') || 'Uncategorized');
+      return `
+        <div class="tx-item">
+          <div class="tx-left">
+            <span class="tx-merchant">${merchant}<span class="tx-category-badge">${cat}</span></span>
+            <span class="tx-meta">${escapeHtml(formatDate(tx.date))} · ${categories}</span>
+          </div>
+          <span class="tx-amount ${isNeg ? 'negative' : 'positive'}">${isNeg ? '-' : '+'}${formatCurrency(Math.abs(tx.amount))}</span>
+        </div>
+      `;
+    }
+
+    function filterTransactions() {
+      const query = document.getElementById('tx-search').value.toLowerCase();
+      const catFilter = document.getElementById('tx-category-filter').value;
+
+      filteredTransactions = allTransactions.filter(tx => {
+        const merchant = (tx.merchant_name || tx.name || '').toLowerCase();
+        const cats = (tx.category || []).join(' ').toLowerCase();
+        const matchSearch = !query || merchant.includes(query) || cats.includes(query);
+        const matchCat = !catFilter || (tx.category && tx.category[0] === catFilter);
+        return matchSearch && matchCat;
+      });
+
+      renderList(filteredTransactions);
+    }
+
+    function renderList(transactions) {
+      const container = document.getElementById('tx-list');
+      const label = document.getElementById('tx-count-label');
+
+      if (transactions.length === 0) {
+        label.textContent = 'No transactions found';
+        container.innerHTML = '<div class="empty-state">No transactions match your search.</div>';
+        return;
+      }
+
+      label.textContent = `Showing ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`;
+      container.innerHTML = transactions.map(renderTxItem).join('');
+    }
+
+    async function loadTransactions() {
+      try {
+        const res = await authFetch('/api/transactions');
+        const data = await res.json();
+        allTransactions = data.transactions || [];
+
+        // Populate category filter
+        const filterEl = document.getElementById('tx-category-filter');
+        const cats = getCategories(allTransactions);
+        cats.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          filterEl.appendChild(opt);
+        });
+
+        filteredTransactions = [...allTransactions];
+        renderList(filteredTransactions);
+      } catch (err) {
+        showToast('Failed to load transactions.', 'error');
+        document.getElementById('tx-count-label').textContent = 'Could not load transactions';
+        document.getElementById('tx-list').innerHTML = '<div class="empty-state">Connect a bank account in Dashboard to see transactions.</div>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTransactions);
+  </script>
+</body>
+</html>

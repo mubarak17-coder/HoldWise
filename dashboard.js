@@ -20,7 +20,7 @@ async function authFetch(url, options = {}) {
     if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       await supabaseClient.auth.signOut();
     }
-    window.location.href = '/login';
+    window.location.href = '/login.html';
     throw new Error('Session expired');
   }
   return res;
@@ -332,7 +332,7 @@ async function handleLogout() {
   // Clear sensitive local data on logout
   localStorage.removeItem(LOCKBOX_KEY);
   localStorage.removeItem(LOCKBOX_GOAL_KEY);
-  navigateTo('/login');
+  navigateTo('/login.html');
 }
 
 // ── Init ──

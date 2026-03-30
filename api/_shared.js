@@ -44,9 +44,14 @@ function checkRateLimit(ip, max, windowMs) {
 }
 
 // CORS headers
-function setCors(res) {
-  const origins = process.env.ALLOWED_ORIGINS || 'http://localhost:3000';
-  res.setHeader('Access-Control-Allow-Origin', origins);
+function setCors(req, res) {
+  const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim());
+  const origin = req.headers.origin || '';
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 }

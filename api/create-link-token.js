@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
       user: { client_user_id: user.id },
       client_name: 'Holdwise',
       products: [Products.Transactions],
-      country_codes: [CountryCode.De],
+      country_codes: ['DE'],
       language: 'de',
       link_customization_name: 'holdwise',
     };

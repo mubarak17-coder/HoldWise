@@ -178,12 +178,104 @@
     .goals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .goal-card {
       background: var(--bg-card-2); border-radius: 14px; padding: 16px;
+      display: flex; flex-direction: column;
     }
-    .goal-icon { font-size: 22px; margin-bottom: 8px; }
+    .goal-card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+    }
+    .goal-icon { font-size: 22px; line-height: 1; }
+    .goal-card-actions { display: flex; gap: 2px; }
+    .goal-action-btn {
+      background: none; border: none; cursor: pointer; color: var(--text-muted);
+      font-size: 13px; padding: 2px 5px; border-radius: 6px; line-height: 1;
+      opacity: 0; transition: opacity 0.15s, color 0.15s;
+    }
+    .goal-card:hover .goal-action-btn { opacity: 1; }
+    .goal-action-btn.edit:hover { color: var(--accent-2); }
+    .goal-action-btn.delete:hover { color: var(--red); }
     .goal-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
     .goal-nums { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
     .goal-bar-track { height: 4px; background: rgba(255,255,255,0.08); border-radius: 100px; overflow: hidden; }
     .goal-bar-fill { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+    .goal-add-row {
+      display: flex; gap: 6px; margin-top: 10px; align-items: center;
+    }
+    .goal-add-input {
+      flex: 1; min-width: 0; padding: 6px 10px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; color: var(--text); font-size: 12px; font-family: inherit; outline: none;
+    }
+    .goal-add-input:focus { border-color: var(--accent); background: rgba(255,255,255,0.08); }
+    .goal-add-input::placeholder { color: var(--text-muted); }
+    .goal-add-btn {
+      padding: 6px 10px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer; flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .goal-add-btn:hover { opacity: 0.85; }
+    .goal-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .goal-add-card {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: 14px; cursor: pointer; min-height: 110px; gap: 4px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .goal-add-card:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); }
+
+    /* ── Add Goal Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.visible { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-card); border-radius: 20px; padding: 28px 24px;
+      width: 100%; max-width: 360px;
+      transform: translateY(16px); transition: transform 0.25s ease;
+    }
+    .modal-overlay.visible .modal { transform: translateY(0); }
+    .modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .modal-input {
+      width: 100%; padding: 11px 14px;
+      background: var(--bg-card-2); border: none;
+      border-radius: 10px; color: var(--text);
+      font-size: 14px; font-family: inherit; outline: none;
+      transition: background 0.2s;
+    }
+    .modal-input:focus { background: rgba(255,255,255,0.1); }
+    .modal-input::placeholder { color: var(--text-muted); }
+    .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-swatch {
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      border: 3px solid transparent; transition: border-color 0.15s, transform 0.15s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: #fff; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-modal-cancel {
+      flex: 1; padding: 12px; border-radius: 100px;
+      background: var(--bg-card-2); color: var(--text);
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      border: none; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-modal-cancel:hover { background: rgba(255,255,255,0.1); }
+    .btn-modal-create {
+      flex: 1; padding: 12px; border-radius: 100px;
+      background: var(--accent); color: #fff;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-modal-create:hover { opacity: 0.88; }
+    .btn-modal-create:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── History ── */
     .history-item {
@@ -299,35 +391,11 @@
       <div class="card">
         <div class="card-title">
           <span>My Goals</span>
-          <span class="card-title-sub">3 active</span>
+          <span class="card-title-sub" id="goals-count">Loading...</span>
         </div>
-        <div class="goals-grid">
-          <div class="goal-card">
-            <div class="goal-icon">✈️</div>
-            <div class="goal-name">Vacation</div>
-            <div class="goal-nums">$820 / $2,000</div>
-            <div class="goal-bar-track">
-              <div class="goal-bar-fill" style="width:41%;background:#00D4FF"></div>
-            </div>
-          </div>
-          <div class="goal-card">
-            <div class="goal-icon">💻</div>
-            <div class="goal-name">New MacBook</div>
-            <div class="goal-nums">$1,200 / $3,000</div>
-            <div class="goal-bar-track">
-              <div class="goal-bar-fill" style="width:40%;background:#6C5CE7"></div>
-            </div>
-          </div>
-          <div class="goal-card">
-            <div class="goal-icon">🏠</div>
-            <div class="goal-name">Emergency Fund</div>
-            <div class="goal-nums">$3,400 / $10,000</div>
-            <div class="goal-bar-track">
-              <div class="goal-bar-fill" style="width:34%;background:#30D158"></div>
-            </div>
-          </div>
-          <div class="goal-card" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.12);cursor:pointer;" onclick="showToast('Goal creation coming soon!','success')">
-            <span style="font-size:22px;color:var(--text-muted)">＋</span>
+        <div class="goals-grid" id="goals-grid">
+          <div class="goal-add-card" style="opacity:0.4;pointer-events:none;">
+            <span style="font-size:22px;color:var(--text-muted)">⏳</span>
           </div>
         </div>
       </div>
@@ -350,6 +418,34 @@
           <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;" id="history-empty">
             Start adding to your lockbox to see history here.
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Goal Modal -->
+    <div class="modal-overlay" id="add-goal-modal" onclick="handleModalBg(event)">
+      <div class="modal">
+        <input type="hidden" id="editing-goal-id" value="" />
+        <h2 id="modal-title">New Savings Goal</h2>
+        <div class="modal-field">
+          <label>Icon (emoji)</label>
+          <input class="modal-input" id="goal-icon-input" type="text" maxlength="4" placeholder="✈️" />
+        </div>
+        <div class="modal-field">
+          <label>Name</label>
+          <input class="modal-input" id="goal-name-input" type="text" maxlength="100" placeholder="e.g. Vacation" />
+        </div>
+        <div class="modal-field">
+          <label>Target Amount ($)</label>
+          <input class="modal-input" id="goal-target-input" type="number" min="1" step="0.01" placeholder="2000" />
+        </div>
+        <div class="modal-field">
+          <label>Color</label>
+          <div class="color-swatches" id="color-swatches"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeAddGoalModal()">Cancel</button>
+          <button class="btn-modal-create" id="create-goal-btn" onclick="submitGoalModal()">Create Goal</button>
         </div>
       </div>
     </div>
@@ -378,65 +474,38 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWlndWhuZGdqbXlnYnhoYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTYsImV4cCI6MjA5MDM4MjY1Nn0.xhPxYmIxBdJu856e63WQna_fQTC1FRqILZcuctemIpo';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const LOCKBOX_KEY = 'holdwise_lockbox';
-    const LOCKBOX_GOAL_KEY = 'holdwise_lockbox_goal';
+    // ── In-memory state ──
+    let lockboxState = { balance: 0, goal: 5000 };
+    let goalsState = [];
+    const PRESET_COLORS = ['#00D4FF', '#6C5CE7', '#30D158', '#FF9F0A', '#FF453A', '#EC4899'];
+    let selectedColor = PRESET_COLORS[0];
 
-    function getLockbox() { return parseFloat(localStorage.getItem(LOCKBOX_KEY) || '0'); }
-    function getLockboxGoal() { return parseFloat(localStorage.getItem(LOCKBOX_GOAL_KEY) || '5000'); }
-    function saveLockbox(val) { localStorage.setItem(LOCKBOX_KEY, val.toString()); }
-    function saveLockboxGoal(val) { localStorage.setItem(LOCKBOX_GOAL_KEY, val.toString()); }
+    // ── Auth helpers ──
+    async function getAuthHeaders() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) return {};
+      return { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' };
+    }
+
+    async function authFetch(url, options = {}) {
+      const headers = await getAuthHeaders();
+      const res = await fetch(url, { ...options, headers: { ...headers, ...options.headers } });
+      if (res.status === 401) {
+        await supabaseClient.auth.signOut();
+        navigateTo('/login.html');
+        throw new Error('Session expired');
+      }
+      return res;
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = String(str);
+      return d.innerHTML;
+    }
 
     function formatCurrency(v) {
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
-    }
-
-    function updateLockboxUI() {
-      const current = getLockbox();
-      const goal = getLockboxGoal();
-      const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
-      document.getElementById('lockbox-current').textContent = formatCurrency(current);
-      document.getElementById('lockbox-goal').textContent = `of ${formatCurrency(goal)} goal`;
-      document.getElementById('lockbox-progress').style.width = pct.toFixed(1) + '%';
-      document.getElementById('lockbox-percent').textContent = pct.toFixed(1) + '% reached';
-    }
-
-    function addToLockbox() {
-      const input = document.getElementById('lockbox-amount');
-      const amount = parseFloat(input.value);
-      if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
-      saveLockbox(getLockbox() + amount);
-      document.getElementById('history-last').textContent = '+' + formatCurrency(amount);
-      document.getElementById('history-empty').style.display = 'none';
-      input.value = '';
-      updateLockboxUI();
-      showToast(`Added ${formatCurrency(amount)} to your lockbox!`, 'success');
-    }
-
-    function editGoal() {
-      const goalEl = document.getElementById('lockbox-goal');
-      const current = getLockboxGoal();
-      const wrapper = document.createElement('span');
-      wrapper.innerHTML = `<input type="number" id="goal-edit-input" value="${current}" min="1" step="0.01"
-        style="padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--accent);
-        border-radius:100px;color:var(--text);font-size:13px;font-family:inherit;outline:none;width:130px;" />
-        <button onclick="saveGoalEdit()" style="margin-left:8px;padding:6px 14px;background:var(--accent);
-        color:#fff;border:none;border-radius:100px;font-size:12px;cursor:pointer;font-family:inherit;">Save</button>`;
-      goalEl.replaceWith(wrapper);
-      const inp = document.getElementById('goal-edit-input');
-      inp.focus(); inp.select();
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveGoalEdit(); });
-    }
-
-    function saveGoalEdit() {
-      const inp = document.getElementById('goal-edit-input');
-      const val = parseFloat(inp.value);
-      if (!isNaN(val) && val > 0) { saveLockboxGoal(val); showToast('Goal updated!', 'success'); }
-      const wrapper = inp.parentElement;
-      const goalEl = document.createElement('span');
-      goalEl.id = 'lockbox-goal';
-      goalEl.className = 'lockbox-goal-text';
-      wrapper.replaceWith(goalEl);
-      updateLockboxUI();
     }
 
     function navigateTo(url) {
@@ -453,18 +522,342 @@
       setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 4000);
     }
 
+    // ── Lockbox ──
+    function updateLockboxUI() {
+      const { balance, goal } = lockboxState;
+      const pct = goal > 0 ? Math.min((balance / goal) * 100, 100) : 0;
+      document.getElementById('lockbox-current').textContent = formatCurrency(balance);
+      document.getElementById('lockbox-goal').textContent = `of ${formatCurrency(goal)} goal`;
+      document.getElementById('lockbox-progress').style.width = pct.toFixed(1) + '%';
+      document.getElementById('lockbox-percent').textContent = pct.toFixed(1) + '% reached';
+    }
+
+    async function fetchLockbox() {
+      const res = await authFetch('/api/lockbox');
+      if (res.ok) {
+        lockboxState = await res.json();
+        updateLockboxUI();
+      }
+    }
+
+    async function addToLockbox() {
+      const input = document.getElementById('lockbox-amount');
+      const amount = parseFloat(input.value);
+      if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+
+      const prev = lockboxState.balance;
+      lockboxState.balance = prev + amount;
+      input.value = '';
+      updateLockboxUI();
+      document.getElementById('history-last').textContent = '+' + formatCurrency(amount);
+      document.getElementById('history-empty').style.display = 'none';
+
+      try {
+        const res = await authFetch('/api/lockbox', {
+          method: 'POST',
+          body: JSON.stringify({ balance: lockboxState.balance }),
+        });
+        if (res.ok) {
+          lockboxState = await res.json();
+          updateLockboxUI();
+          showToast(`Added ${formatCurrency(amount)} to your lockbox!`, 'success');
+        } else {
+          lockboxState.balance = prev;
+          updateLockboxUI();
+          showToast('Failed to save. Please try again.', 'error');
+        }
+      } catch {
+        lockboxState.balance = prev;
+        updateLockboxUI();
+        showToast('Failed to save. Please try again.', 'error');
+      }
+    }
+
+    function editGoal() {
+      const goalEl = document.getElementById('lockbox-goal');
+      const current = lockboxState.goal;
+      const wrapper = document.createElement('span');
+      wrapper.innerHTML = `<input type="number" id="goal-edit-input" value="${current}" min="1" step="0.01"
+        style="padding:6px 12px;background:rgba(255,255,255,0.06);border:1px solid var(--accent);
+        border-radius:100px;color:var(--text);font-size:13px;font-family:inherit;outline:none;width:130px;" />
+        <button onclick="saveGoalEdit()" style="margin-left:8px;padding:6px 14px;background:var(--accent);
+        color:#fff;border:none;border-radius:100px;font-size:12px;cursor:pointer;font-family:inherit;">Save</button>`;
+      goalEl.replaceWith(wrapper);
+      const inp = document.getElementById('goal-edit-input');
+      inp.focus(); inp.select();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveGoalEdit(); });
+    }
+
+    async function saveGoalEdit() {
+      const inp = document.getElementById('goal-edit-input');
+      const val = parseFloat(inp.value);
+      const wrapper = inp.parentElement;
+      const goalEl = document.createElement('span');
+      goalEl.id = 'lockbox-goal';
+      goalEl.className = 'lockbox-goal-text';
+      wrapper.replaceWith(goalEl);
+
+      if (!isNaN(val) && val > 0) {
+        lockboxState.goal = val;
+        updateLockboxUI();
+        try {
+          const res = await authFetch('/api/lockbox', {
+            method: 'POST',
+            body: JSON.stringify({ goal: val }),
+          });
+          if (res.ok) {
+            lockboxState = await res.json();
+            updateLockboxUI();
+            showToast('Goal updated!', 'success');
+          }
+        } catch {
+          showToast('Failed to save goal.', 'error');
+        }
+      } else {
+        updateLockboxUI();
+      }
+    }
+
+    // ── Goals ──
+    async function fetchGoals() {
+      try {
+        const res = await authFetch('/api/goals');
+        if (res.ok) {
+          goalsState = await res.json();
+        }
+      } catch { /* network error — keep empty state */ }
+      renderGoals();
+    }
+
+    function renderGoals() {
+      const grid = document.getElementById('goals-grid');
+      const countEl = document.getElementById('goals-count');
+      if (countEl) countEl.textContent = goalsState.length + ' active';
+
+      const cards = goalsState.map(goal => {
+        const pct = goal.target_amount > 0
+          ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
+          : 0;
+        return `
+          <div class="goal-card" data-id="${escapeHtml(goal.id)}">
+            <div class="goal-card-header">
+              <span class="goal-icon">${escapeHtml(goal.icon)}</span>
+              <div class="goal-card-actions">
+                <button class="goal-action-btn edit" onclick="openEditGoalModal('${escapeHtml(goal.id)}')" title="Edit goal">✎</button>
+                <button class="goal-action-btn delete" onclick="deleteGoal('${escapeHtml(goal.id)}')" title="Delete goal">✕</button>
+              </div>
+            </div>
+            <div class="goal-name">${escapeHtml(goal.name)}</div>
+            <div class="goal-nums">${formatCurrency(goal.current_amount)} / ${formatCurrency(goal.target_amount)}</div>
+            <div class="goal-bar-track">
+              <div class="goal-bar-fill" style="width:${pct.toFixed(1)}%;background:${escapeHtml(goal.color)}"></div>
+            </div>
+            <div class="goal-add-row">
+              <input type="number" class="goal-add-input" placeholder="Add $..." min="0" step="0.01" />
+              <button class="goal-add-btn" onclick="addToGoal('${escapeHtml(goal.id)}', this)">+</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const addCard = `
+        <div class="goal-add-card" onclick="openAddGoalModal()">
+          <span style="font-size:22px;color:var(--text-muted)">＋</span>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px">New Goal</span>
+        </div>`;
+
+      grid.innerHTML = cards + addCard;
+    }
+
+    async function addToGoal(goalId, btn) {
+      const input = btn.previousElementSibling;
+      const amount = parseFloat(input.value);
+      if (!amount || amount <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+
+      const goal = goalsState.find(g => g.id === goalId);
+      if (!goal) return;
+
+      btn.disabled = true;
+      const newAmount = goal.current_amount + amount;
+
+      try {
+        const res = await authFetch('/api/goals', {
+          method: 'PATCH',
+          body: JSON.stringify({ id: goalId, current_amount: newAmount }),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          const idx = goalsState.findIndex(g => g.id === goalId);
+          if (idx !== -1) goalsState[idx] = updated;
+          renderGoals();
+          showToast(`Added ${formatCurrency(amount)} to "${goal.name}"!`, 'success');
+        } else {
+          btn.disabled = false;
+          showToast('Failed to update goal.', 'error');
+        }
+      } catch {
+        btn.disabled = false;
+        showToast('Failed to update goal.', 'error');
+      }
+    }
+
+    async function deleteGoal(goalId) {
+      const goal = goalsState.find(g => g.id === goalId);
+      if (!goal) return;
+      if (!confirm(`Delete goal "${goal.name}"? This cannot be undone.`)) return;
+
+      try {
+        const res = await authFetch('/api/goals', {
+          method: 'DELETE',
+          body: JSON.stringify({ id: goalId }),
+        });
+        if (res.ok) {
+          goalsState = goalsState.filter(g => g.id !== goalId);
+          renderGoals();
+          showToast(`"${goal.name}" deleted.`, 'success');
+        } else {
+          showToast('Failed to delete goal.', 'error');
+        }
+      } catch {
+        showToast('Failed to delete goal.', 'error');
+      }
+    }
+
+    // ── Add / Edit Goal Modal ──
+    function openAddGoalModal() {
+      document.getElementById('editing-goal-id').value = '';
+      document.getElementById('modal-title').textContent = 'New Savings Goal';
+      document.getElementById('goal-name-input').value = '';
+      document.getElementById('goal-icon-input').value = '';
+      document.getElementById('goal-target-input').value = '';
+      selectedColor = PRESET_COLORS[0];
+      const btn = document.getElementById('create-goal-btn');
+      btn.disabled = false;
+      btn.textContent = 'Create Goal';
+      renderColorSwatches();
+      document.getElementById('add-goal-modal').classList.add('visible');
+      setTimeout(() => document.getElementById('goal-name-input').focus(), 50);
+    }
+
+    // Allow Enter key to submit in modal inputs
+    document.addEventListener('DOMContentLoaded', () => {
+      ['goal-name-input', 'goal-icon-input', 'goal-target-input'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); submitGoalModal(); }
+        });
+      });
+    });
+
+    function openEditGoalModal(goalId) {
+      const goal = goalsState.find(g => g.id === goalId);
+      if (!goal) return;
+
+      document.getElementById('editing-goal-id').value = goalId;
+      document.getElementById('modal-title').textContent = 'Edit Goal';
+      document.getElementById('goal-name-input').value = goal.name;
+      document.getElementById('goal-icon-input').value = goal.icon;
+      document.getElementById('goal-target-input').value = goal.target_amount;
+      selectedColor = PRESET_COLORS.includes(goal.color) ? goal.color : PRESET_COLORS[0];
+      const btn = document.getElementById('create-goal-btn');
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+      renderColorSwatches();
+      document.getElementById('add-goal-modal').classList.add('visible');
+      setTimeout(() => document.getElementById('goal-name-input').focus(), 50);
+    }
+
+    function closeAddGoalModal() {
+      document.getElementById('add-goal-modal').classList.remove('visible');
+    }
+
+    function handleModalBg(e) {
+      if (e.target === document.getElementById('add-goal-modal')) closeAddGoalModal();
+    }
+
+    function renderColorSwatches() {
+      const container = document.getElementById('color-swatches');
+      container.innerHTML = PRESET_COLORS.map(color => `
+        <div class="color-swatch ${color === selectedColor ? 'selected' : ''}"
+          style="background:${color}"
+          onclick="selectColor('${color}')"></div>
+      `).join('');
+    }
+
+    function selectColor(color) {
+      selectedColor = color;
+      renderColorSwatches();
+    }
+
+    async function submitGoalModal() {
+      const editingId = document.getElementById('editing-goal-id').value;
+      const name = document.getElementById('goal-name-input').value.trim();
+      const icon = document.getElementById('goal-icon-input').value.trim() || '🎯';
+      const target = parseFloat(document.getElementById('goal-target-input').value);
+
+      if (!name) { showToast('Enter a goal name.', 'error'); return; }
+      if (!target || target <= 0) { showToast('Enter a valid target amount.', 'error'); return; }
+
+      const btn = document.getElementById('create-goal-btn');
+      btn.disabled = true;
+      btn.textContent = editingId ? 'Saving...' : 'Creating...';
+
+      try {
+        if (editingId) {
+          // Edit existing goal
+          const res = await authFetch('/api/goals', {
+            method: 'PATCH',
+            body: JSON.stringify({ id: editingId, name, icon, target_amount: target, color: selectedColor }),
+          });
+          if (res.ok) {
+            const updated = await res.json();
+            const idx = goalsState.findIndex(g => g.id === editingId);
+            if (idx !== -1) goalsState[idx] = updated;
+            renderGoals();
+            closeAddGoalModal();
+            showToast(`"${name}" updated!`, 'success');
+          } else {
+            const { error } = await res.json().catch(() => ({}));
+            showToast(error || 'Failed to update goal.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+          }
+        } else {
+          // Create new goal
+          const res = await authFetch('/api/goals', {
+            method: 'POST',
+            body: JSON.stringify({ name, icon, target_amount: target, color: selectedColor }),
+          });
+          if (res.ok) {
+            const newGoal = await res.json();
+            goalsState.push(newGoal);
+            renderGoals();
+            closeAddGoalModal();
+            showToast(`Goal "${name}" created!`, 'success');
+          } else {
+            const { error } = await res.json().catch(() => ({}));
+            showToast(error || 'Failed to create goal.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Create Goal';
+          }
+        }
+      } catch {
+        showToast('Something went wrong. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = editingId ? 'Save Changes' : 'Create Goal';
+      }
+    }
+
+    // ── Logout ──
     async function handleLogout() {
       await supabaseClient.auth.signOut();
-      localStorage.removeItem(LOCKBOX_KEY);
-      localStorage.removeItem(LOCKBOX_GOAL_KEY);
       navigateTo('/login.html');
     }
 
+    // ── Init ──
     (async function() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) { navigateTo('/login.html'); return; }
-      updateLockboxUI();
       document.body.classList.add('loaded');
+      await Promise.all([fetchLockbox(), fetchGoals()]);
     })();
   </script>
 </body>

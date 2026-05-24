@@ -253,6 +253,91 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
   }
 });
 
+app.get('/api/lockbox', requireAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('savings_lockbox')
+    .select('balance, goal')
+    .eq('user_id', req.user.id)
+    .single();
+  if (error && error.code !== 'PGRST116') return res.status(500).json({ error: 'Failed to fetch lockbox' });
+  res.json(data || { balance: 0, goal: 5000 });
+});
+
+app.post('/api/lockbox', requireAuth, async (req, res) => {
+  const body = req.body || {};
+  const update = { user_id: req.user.id };
+  if (body.balance !== undefined) update.balance = Math.max(0, parseFloat(body.balance) || 0);
+  if (body.goal !== undefined) update.goal = Math.max(0.01, parseFloat(body.goal) || 5000);
+  const { data, error } = await supabase
+    .from('savings_lockbox')
+    .upsert(update, { onConflict: 'user_id' })
+    .select('balance, goal')
+    .single();
+  if (error) return res.status(500).json({ error: 'Failed to update lockbox' });
+  res.json(data);
+});
+
+app.get('/api/goals', requireAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('id, name, icon, current_amount, target_amount, color')
+    .eq('user_id', req.user.id)
+    .order('created_at', { ascending: true });
+  if (error) return res.status(500).json({ error: 'Failed to fetch goals' });
+  res.json(data || []);
+});
+
+app.post('/api/goals', requireAuth, async (req, res) => {
+  const { name, icon, target_amount, color } = req.body || {};
+  if (!name || !target_amount) return res.status(400).json({ error: 'name and target_amount are required' });
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .insert({
+      user_id: req.user.id,
+      name: String(name).slice(0, 100),
+      icon: String(icon || '🎯').slice(0, 10),
+      target_amount: Math.max(0.01, parseFloat(target_amount)),
+      color: String(color || '#6C5CE7').slice(0, 20),
+      current_amount: 0,
+    })
+    .select('id, name, icon, current_amount, target_amount, color')
+    .single();
+  if (error) return res.status(500).json({ error: 'Failed to create goal' });
+  res.status(201).json(data);
+});
+
+app.patch('/api/goals', requireAuth, async (req, res) => {
+  const { id, name, icon, current_amount, target_amount, color } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const update = {};
+  if (name !== undefined) update.name = String(name).slice(0, 100);
+  if (icon !== undefined) update.icon = String(icon).slice(0, 10);
+  if (current_amount !== undefined) update.current_amount = Math.max(0, parseFloat(current_amount) || 0);
+  if (target_amount !== undefined) update.target_amount = Math.max(0.01, parseFloat(target_amount));
+  if (color !== undefined) update.color = String(color).slice(0, 20);
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update(update)
+    .eq('id', id)
+    .eq('user_id', req.user.id)
+    .select('id, name, icon, current_amount, target_amount, color')
+    .single();
+  if (error) return res.status(500).json({ error: 'Failed to update goal' });
+  res.json(data);
+});
+
+app.delete('/api/goals', requireAuth, async (req, res) => {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id is required' });
+  const { error } = await supabase
+    .from('savings_goals')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', req.user.id);
+  if (error) return res.status(500).json({ error: 'Failed to delete goal' });
+  res.json({ success: true });
+});
+
 app.delete('/api/delete-account', requireAuth, async (req, res) => {
   const userId = req.user.id;
   try {

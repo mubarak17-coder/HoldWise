@@ -350,7 +350,7 @@
     <div class="section">
       <div class="section-label">Account</div>
       <div class="card">
-        <div class="settings-row" style="cursor:pointer" onclick="showToast('Password reset email sent!', 'success')">
+        <div class="settings-row" id="change-password-row" style="cursor:pointer" onclick="sendPasswordReset()">
           <div class="row-icon" style="background:rgba(255,159,10,0.1)">🔑</div>
           <div class="row-info">
             <div class="row-label">Change Password</div>
@@ -464,17 +464,49 @@
       }
     }
 
-    function clearSavings() {
+    async function sendPasswordReset() {
+      const label = document.querySelector('#change-password-row .row-label');
+      if (!label || label.textContent === 'Sending…') return;
+      label.textContent = 'Sending…';
+
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { navigateTo('/login.html'); return; }
+
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(session.user.email, {
+          redirectTo: window.location.origin + '/login.html',
+        });
+
+        if (error) throw error;
+        showToast('Reset link sent to ' + session.user.email, 'success');
+      } catch (err) {
+        showToast(err.message || 'Failed to send reset email', 'error');
+      } finally {
+        if (label) { label.textContent = 'Change Password'; }
+      }
+    }
+
+    async function clearSavings() {
       if (!confirm('Clear all savings data? This cannot be undone.')) return;
-      localStorage.removeItem('holdwise_lockbox');
-      localStorage.removeItem('holdwise_lockbox_goal');
-      showToast('Savings data cleared.', 'success');
+
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { navigateTo('/login.html'); return; }
+
+        const res = await fetch('/api/lockbox', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ balance: 0, goal: 5000 }),
+        });
+        if (!res.ok) throw new Error('Server error');
+        showToast('Savings data cleared.', 'success');
+      } catch {
+        showToast('Failed to clear savings. Please try again.', 'error');
+      }
     }
 
     async function handleLogout() {
       await supabaseClient.auth.signOut();
-      localStorage.removeItem('holdwise_lockbox');
-      localStorage.removeItem('holdwise_lockbox_goal');
       navigateTo('/login.html');
     }
 

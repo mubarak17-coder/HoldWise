@@ -1,5 +1,6 @@
 // ── State ──
 let bankConnected = false;
+let lockboxState = { balance: 0, goal: 5000 };
 
 // ── Helper: get auth headers for API calls ──
 async function getAuthHeaders() {
@@ -33,48 +34,62 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ── Savings Lockbox (persisted in localStorage) ──
-const LOCKBOX_KEY = 'holdwise_lockbox';
-const LOCKBOX_GOAL_KEY = 'holdwise_lockbox_goal';
-
-function getLockbox() {
-  return parseFloat(localStorage.getItem(LOCKBOX_KEY) || '0');
-}
-function getLockboxGoal() {
-  return parseFloat(localStorage.getItem(LOCKBOX_GOAL_KEY) || '5000');
-}
-function saveLockbox(val) {
-  localStorage.setItem(LOCKBOX_KEY, val.toString());
-}
-function saveLockboxGoal(val) {
-  localStorage.setItem(LOCKBOX_GOAL_KEY, val.toString());
-}
-
+// ── Savings Lockbox (persisted in Supabase) ──
 function updateLockboxUI() {
-  const current = getLockbox();
-  const goal = getLockboxGoal();
-  const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
+  const { balance, goal } = lockboxState;
+  const pct = goal > 0 ? Math.min((balance / goal) * 100, 100) : 0;
 
-  document.getElementById('lockbox-current').textContent = formatCurrency(current);
+  document.getElementById('lockbox-current').textContent = formatCurrency(balance);
   document.getElementById('lockbox-goal').textContent = `of ${formatCurrency(goal)} goal`;
   document.getElementById('lockbox-progress').style.width = pct.toFixed(1) + '%';
   document.getElementById('lockbox-percent').textContent = pct.toFixed(1) + '% reached';
 }
 
-function addToLockbox() {
+async function fetchLockbox() {
+  try {
+    const res = await authFetch('/api/lockbox');
+    if (res.ok) {
+      lockboxState = await res.json();
+      updateLockboxUI();
+    }
+  } catch { /* non-critical on dashboard */ }
+}
+
+async function addToLockbox() {
   const input = document.getElementById('lockbox-amount');
   const amount = parseFloat(input.value);
   if (!amount || amount <= 0) return;
-  saveLockbox(getLockbox() + amount);
+
+  const prev = lockboxState.balance;
+  lockboxState.balance = prev + amount;
   input.value = '';
   updateLockboxUI();
+
+  try {
+    const res = await authFetch('/api/lockbox', {
+      method: 'POST',
+      body: JSON.stringify({ balance: lockboxState.balance }),
+    });
+    if (res.ok) {
+      lockboxState = await res.json();
+      updateLockboxUI();
+      showToast(`Added ${formatCurrency(amount)} to lockbox!`, 'success');
+    } else {
+      lockboxState.balance = prev;
+      updateLockboxUI();
+      showToast('Failed to save. Please try again.', 'error');
+    }
+  } catch {
+    lockboxState.balance = prev;
+    updateLockboxUI();
+    showToast('Failed to save. Please try again.', 'error');
+  }
 }
 
 function editGoal() {
   const goalEl = document.getElementById('lockbox-goal');
-  const current = getLockboxGoal();
+  const current = lockboxState.goal;
 
-  // Replace goal text with inline input
   const wrapper = document.createElement('span');
   wrapper.innerHTML = `<input type="number" id="goal-edit-input" value="${current}" min="1" step="0.01"
     style="width:120px;padding:4px 8px;background:rgba(255,255,255,0.05);border:1px solid var(--accent);
@@ -89,20 +104,35 @@ function editGoal() {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveGoalEdit(); });
 }
 
-function saveGoalEdit() {
+async function saveGoalEdit() {
   const input = document.getElementById('goal-edit-input');
   const val = parseFloat(input.value);
-  if (!isNaN(val) && val > 0) {
-    saveLockboxGoal(val);
-    showToast('Savings goal updated!', 'success');
-  }
-  // Restore the goal element
+
   const wrapper = input.parentElement;
   const goalEl = document.createElement('span');
   goalEl.className = 'lockbox-goal';
   goalEl.id = 'lockbox-goal';
   wrapper.replaceWith(goalEl);
-  updateLockboxUI();
+
+  if (!isNaN(val) && val > 0) {
+    lockboxState.goal = val;
+    updateLockboxUI();
+    try {
+      const res = await authFetch('/api/lockbox', {
+        method: 'POST',
+        body: JSON.stringify({ goal: val }),
+      });
+      if (res.ok) {
+        lockboxState = await res.json();
+        updateLockboxUI();
+        showToast('Savings goal updated!', 'success');
+      }
+    } catch {
+      showToast('Failed to save goal.', 'error');
+    }
+  } else {
+    updateLockboxUI();
+  }
 }
 
 // ── Count-up animation (ease-out cubic) ──
@@ -222,7 +252,7 @@ function renderBalances(data) {
 
   // Update savings asset row
   const assetSavings = document.getElementById('asset-savings');
-  if (assetSavings) assetSavings.textContent = formatCurrency(getLockbox());
+  if (assetSavings) assetSavings.textContent = formatCurrency(lockboxState.balance);
 
   if (count > 0) {
     bankConnected = true;
@@ -387,14 +417,11 @@ async function handleLogout() {
   if (typeof supabaseClient !== 'undefined' && supabaseClient) {
     await supabaseClient.auth.signOut();
   }
-  // Clear sensitive local data on logout
-  localStorage.removeItem(LOCKBOX_KEY);
-  localStorage.removeItem(LOCKBOX_GOAL_KEY);
   navigateTo('/login.html');
 }
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
-  updateLockboxUI();
+  fetchLockbox();
   loadDashboardData();
 });

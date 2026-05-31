@@ -163,6 +163,15 @@
       padding: 3px 10px; border-radius: 100px;
     }
 
+    .btn-disconnect {
+      font-size: 11.5px; font-weight: 600; color: var(--red);
+      background: rgba(255,67,58,0.1); border: 1px solid rgba(255,67,58,0.25);
+      border-radius: 8px; padding: 5px 12px; cursor: pointer;
+      font-family: inherit; transition: opacity 0.2s;
+    }
+    .btn-disconnect:hover { opacity: 0.75; }
+    .btn-disconnect:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* ── Danger zone ── */
     .danger-card { background: rgba(255,67,58,0.05); border: 1px solid rgba(255,67,58,0.15); border-radius: 16px; overflow: hidden; }
     .danger-row { display: flex; align-items: center; padding: 15px 18px; border-bottom: 1px solid rgba(255,67,58,0.08); }
@@ -290,12 +299,8 @@
     <div class="section">
       <div class="section-label">Connected Banks</div>
       <div class="card" id="banks-card">
-        <div class="bank-row">
-          <div class="bank-icon">🏦</div>
-          <div class="bank-info">
-            <div class="bank-name">No banks connected</div>
-            <div class="bank-sub">Go to dashboard to connect your bank via Plaid</div>
-          </div>
+        <div class="bank-row" id="banks-loading">
+          <div class="bank-info"><div class="bank-name" style="color:var(--text-muted)">Loading...</div></div>
         </div>
       </div>
     </div>
@@ -411,6 +416,62 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWlndWhuZGdqbXlnYnhoYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MDY2NTYsImV4cCI6MjA5MDM4MjY1Nn0.xhPxYmIxBdJu856e63WQna_fQTC1FRqILZcuctemIpo';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    function escStr(str) {
+      const d = document.createElement('div');
+      d.textContent = String(str);
+      return d.innerHTML;
+    }
+
+    async function loadBanks() {
+      const card = document.getElementById('banks-card');
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/linked-banks', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const { banks } = await res.json();
+        if (!banks || banks.length === 0) {
+          card.innerHTML = `<div class="bank-row"><div class="bank-icon">🏦</div><div class="bank-info"><div class="bank-name">No banks connected</div><div class="bank-sub">Go to dashboard to connect your bank via Plaid</div></div></div>`;
+          return;
+        }
+        card.innerHTML = banks.map(b => `
+          <div class="bank-row">
+            <div class="bank-icon">🏦</div>
+            <div class="bank-info">
+              <div class="bank-name">${escStr(b.institution_name || 'Bank')}</div>
+              <div class="bank-sub">Connected via Plaid</div>
+            </div>
+            <button class="btn-disconnect" data-item-id="${escStr(b.item_id)}"
+              onclick="disconnectBank(this.dataset.itemId, this)">Disconnect</button>
+          </div>`).join('');
+      } catch {
+        card.innerHTML = `<div class="bank-row"><div class="bank-info"><div class="bank-name" style="color:var(--text-muted)">Failed to load banks</div></div></div>`;
+      }
+    }
+
+    async function disconnectBank(itemId, btn) {
+      if (!confirm('Disconnect this bank? This will revoke access to your account data.')) return;
+      btn.disabled = true;
+      btn.textContent = 'Removing...';
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const res = await fetch('/api/disconnect-bank', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ item_id: itemId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        showToast('Bank disconnected successfully.', 'success');
+        loadBanks();
+      } catch (err) {
+        showToast(err.message || 'Failed to disconnect bank.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Disconnect';
+      }
+    }
+
     function navigateTo(url) {
       document.body.classList.add('fade-out');
       setTimeout(() => window.location.href = url, 220);
@@ -524,6 +585,7 @@
       document.getElementById('avatar-initial').textContent = initial;
 
       document.body.classList.add('loaded');
+      loadBanks();
     })();
   </script>
 </body>

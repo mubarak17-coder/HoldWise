@@ -338,6 +338,54 @@ app.delete('/api/goals', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/linked-banks', requireAuth, async (req, res) => {
+  try {
+    const { data: items, error } = await supabase
+      .from('plaid_items')
+      .select('item_id, institution_name')
+      .eq('user_id', req.user.id);
+    if (error) return res.status(500).json({ error: 'Failed to fetch linked banks' });
+    res.json({ banks: items || [] });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch linked banks' });
+  }
+});
+
+app.delete('/api/disconnect-bank', requireAuth, rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { item_id } = req.body;
+    if (!item_id || typeof item_id !== 'string') {
+      return res.status(400).json({ error: 'Invalid item_id' });
+    }
+
+    const { data: item, error: fetchError } = await supabase
+      .from('plaid_items')
+      .select('access_token')
+      .eq('item_id', item_id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchError || !item) {
+      return res.status(404).json({ error: 'Bank connection not found' });
+    }
+
+    try {
+      await plaidClient.itemRemove({ access_token: item.access_token });
+    } catch (_) { /* non-critical */ }
+
+    const { error: deleteError } = await supabase
+      .from('plaid_items')
+      .delete()
+      .eq('item_id', item_id)
+      .eq('user_id', req.user.id);
+
+    if (deleteError) return res.status(500).json({ error: 'Failed to remove bank connection' });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to disconnect bank' });
+  }
+});
+
 app.delete('/api/delete-account', requireAuth, async (req, res) => {
   const userId = req.user.id;
   try {
